@@ -1,0 +1,12 @@
+global:
+  environment: uat
+backend:
+  replicaCount: 2
+  image: { tag: uat }
+  env:
+    DATABASE_HOST: cms-uat.abcdefgh.ap-south-1.rds.amazonaws.com
+frontend:
+  replicaCount: 2
+  image: { tag: uat }
+ingress:
+  host: cms.uat.example.com

@@ -1,0 +1,26 @@
+{
+  "name": "cms-backend",
+  "version": "1.0.0",
+  "description": "Strapi headless CMS backend",
+  "scripts": {
+    "develop": "strapi develop",
+    "start": "node src/server.js",
+    "build": "strapi build",
+    "test": "jest --passWithNoTests"
+  },
+  "dependencies": {
+    "@strapi/strapi": "4.25.0",
+    "@strapi/plugin-users-permissions": "4.25.0",
+    "@strapi/provider-upload-aws-s3": "4.25.0",
+    "pg": "8.11.3",
+    "express": "4.19.2",
+    "prom-client": "15.1.0"
+  },
+  "devDependencies": {
+    "jest": "29.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}

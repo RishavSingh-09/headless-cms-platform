@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cms-config
+  namespace: cms
+data:
+  LOG_LEVEL: "info"
+  AWS_REGION: "ap-south-1"
+  S3_BUCKET: "cms-media-dev"
+  CACHE_TTL_SECONDS: "300"

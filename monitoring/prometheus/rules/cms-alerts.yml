@@ -1,0 +1,40 @@
+groups:
+  - name: cms-platform
+    interval: 30s
+    rules:
+      - alert: PodCrashLooping
+        expr: rate(kube_pod_container_status_restarts_total{namespace="cms"}[5m]) > 0
+        for: 5m
+        labels: { severity: warning }
+        annotations:
+          summary: "Pod {{ $labels.pod }} is crash-looping"
+          description: "{{ $labels.pod }} in {{ $labels.namespace }} has restarted in the last 5m"
+
+      - alert: HighErrorRate
+        expr: sum(rate(http_requests_total{status=~"5.."}[5m])) by (app) / sum(rate(http_requests_total[5m])) by (app) > 0.05
+        for: 10m
+        labels: { severity: critical }
+        annotations:
+          summary: "High 5xx rate on {{ $labels.app }}"
+          description: "{{ $labels.app }} 5xx > 5% for 10m"
+
+      - alert: HighCPU
+        expr: sum(rate(container_cpu_usage_seconds_total{namespace="cms"}[5m])) by (pod) > 0.8
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "High CPU on {{ $labels.pod }}"
+
+      - alert: HighMemory
+        expr: sum(container_memory_working_set_bytes{namespace="cms"}) by (pod) / sum(container_spec_memory_limit_bytes{namespace="cms"}) by (pod) > 0.9
+        for: 10m
+        labels: { severity: warning }
+        annotations:
+          summary: "High memory on {{ $labels.pod }}"
+
+      - alert: BackendDown
+        expr: up{job="kubernetes-pods", app="cms-backend"} == 0
+        for: 3m
+        labels: { severity: critical }
+        annotations:
+          summary: "cms-backend pod down"

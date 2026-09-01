@@ -1,0 +1,9 @@
+apiVersion: v2
+name: cms-platform
+description: Headless CMS (Strapi + Next.js) Helm chart
+type: application
+version: 0.1.0
+appVersion: "1.0.0"
+maintainers:
+  - name: Rishav Singh
+    url: https://github.com/RishavSingh-09

@@ -1,0 +1,14 @@
+region              = "ap-south-1"
+environment         = "prod"
+vpc_cidr            = "10.30.0.0/16"
+azs                 = ["ap-south-1a", "ap-south-1b", "ap-south-1c"]
+public_subnets      = ["10.30.1.0/24", "10.30.2.0/24", "10.30.3.0/24"]
+private_subnets     = ["10.30.11.0/24", "10.30.12.0/24", "10.30.13.0/24"]
+k8s_version         = "1.29"
+node_instance_types = ["t3.large", "m5.large"]
+node_desired_size   = 3
+node_min_size       = 3
+node_max_size       = 8
+db_instance_class   = "db.m5.large"
+db_multi_az         = true
+db_password         = "changeme-in-secrets-manager"

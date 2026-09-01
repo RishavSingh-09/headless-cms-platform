@@ -1,0 +1,12 @@
+global:
+  environment: dev
+backend:
+  replicaCount: 1
+  image: { tag: dev }
+  env:
+    DATABASE_HOST: cms-dev.abcdefgh.ap-south-1.rds.amazonaws.com
+frontend:
+  replicaCount: 1
+  image: { tag: dev }
+ingress:
+  host: cms.dev.example.com

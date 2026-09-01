@@ -1,0 +1,14 @@
+region              = "ap-south-1"
+environment         = "uat"
+vpc_cidr            = "10.20.0.0/16"
+azs                 = ["ap-south-1a", "ap-south-1b"]
+public_subnets      = ["10.20.1.0/24", "10.20.2.0/24"]
+private_subnets     = ["10.20.11.0/24", "10.20.12.0/24"]
+k8s_version         = "1.29"
+node_instance_types = ["t3.large"]
+node_desired_size   = 2
+node_min_size       = 2
+node_max_size       = 4
+db_instance_class   = "db.t3.small"
+db_multi_az         = false
+db_password         = "changeme-in-secrets-manager"
