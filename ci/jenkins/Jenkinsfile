@@ -1,0 +1,117 @@
+pipeline {
+  agent any
+
+  parameters {
+    choice(name: 'ENVIRONMENT', choices: ['dev', 'uat', 'prod'], description: 'Target environment')
+  }
+
+  environment {
+    REGISTRY       = 'docker.io/rishavsingh09'
+    BACKEND_IMAGE  = "${REGISTRY}/cms-backend"
+    FRONTEND_IMAGE = "${REGISTRY}/cms-frontend"
+    IMAGE_TAG      = "${env.BUILD_NUMBER}-${env.GIT_COMMIT?.take(7)}"
+    AWS_REGION     = 'ap-south-1'
+    CLUSTER_NAME   = "cms-${params.ENVIRONMENT}"
+  }
+
+  options {
+    timestamps()
+    ansiColor('xterm')
+    timeout(time: 45, unit: 'MINUTES')
+  }
+
+  stages {
+    stage('Checkout') {
+      steps { checkout scm }
+    }
+
+    stage('Unit tests') {
+      parallel {
+        stage('Backend tests') {
+          steps {
+            dir('apps/backend') {
+              sh 'npm ci --no-audit --no-fund'
+              sh 'npm test'
+            }
+          }
+        }
+        stage('Frontend tests') {
+          steps {
+            dir('apps/frontend') {
+              sh 'npm ci --no-audit --no-fund'
+              sh 'npm test'
+            }
+          }
+        }
+      }
+    }
+
+    stage('Build images') {
+      steps {
+        sh 'docker build -t $BACKEND_IMAGE:$IMAGE_TAG -f docker/backend.Dockerfile .'
+        sh 'docker build -t $FRONTEND_IMAGE:$IMAGE_TAG -f docker/frontend.Dockerfile .'
+      }
+    }
+
+    stage('Trivy scan') {
+      steps {
+        sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed $BACKEND_IMAGE:$IMAGE_TAG'
+        sh 'trivy image --exit-code 1 --severity HIGH,CRITICAL --ignore-unfixed $FRONTEND_IMAGE:$IMAGE_TAG'
+      }
+    }
+
+    stage('Push') {
+      steps {
+        withCredentials([usernamePassword(credentialsId: 'dockerhub',
+                                          usernameVariable: 'DH_USER',
+                                          passwordVariable: 'DH_PASS')]) {
+          sh 'echo $DH_PASS | docker login -u $DH_USER --password-stdin'
+          sh 'docker push $BACKEND_IMAGE:$IMAGE_TAG'
+          sh 'docker push $FRONTEND_IMAGE:$IMAGE_TAG'
+        }
+      }
+    }
+
+    stage('Deploy: dev') {
+      when { expression { params.ENVIRONMENT == 'dev' } }
+      steps { deployTo('dev') }
+    }
+
+    stage('Approve UAT') {
+      when { expression { params.ENVIRONMENT == 'uat' } }
+      steps { input message: 'Promote to UAT?', ok: 'Deploy' }
+    }
+    stage('Deploy: uat') {
+      when { expression { params.ENVIRONMENT == 'uat' } }
+      steps { deployTo('uat') }
+    }
+
+    stage('Approve PROD') {
+      when { expression { params.ENVIRONMENT == 'prod' } }
+      steps { input message: 'Promote to PRODUCTION?', ok: 'Deploy' }
+    }
+    stage('Deploy: prod') {
+      when { expression { params.ENVIRONMENT == 'prod' } }
+      steps { deployTo('prod') }
+    }
+  }
+
+  post {
+    always  { sh 'docker logout || true' }
+    success { echo "Deployed ${IMAGE_TAG} to ${params.ENVIRONMENT}" }
+    failure { echo "Pipeline failed for ${params.ENVIRONMENT}" }
+  }
+}
+
+def deployTo(String env) {
+  withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', credentialsId: 'aws-creds']]) {
+    sh "aws eks update-kubeconfig --name cms-${env} --region ${AWS_REGION}"
+    sh """
+      helm upgrade --install cms infrastructure/helm/cms-platform \\
+        -f infrastructure/helm/cms-platform/environments/${env}.yaml \\
+        --set backend.image.tag=${IMAGE_TAG} \\
+        --set frontend.image.tag=${IMAGE_TAG} \\
+        --namespace cms --create-namespace --wait --timeout 10m
+    """
+  }
+}
